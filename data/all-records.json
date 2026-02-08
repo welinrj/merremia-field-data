@@ -94,5 +94,21 @@
     "observer": "Micky",
     "notes": "",
     "synced": true
+  },
+  {
+    "id": "mleccguwscwsd",
+    "timestamp": "2026-02-08T22:55:02.744Z",
+    "latitude": 41.01451530210935,
+    "longitude": -93.30820143363276,
+    "accuracy": 230,
+    "island": "Espiritu Santo",
+    "siteName": "Office",
+    "species": "M. peltata",
+    "count": 1,
+    "threatLevel": "Low",
+    "coverageArea": 0,
+    "observer": "",
+    "notes": "",
+    "synced": true
   }
 ]
