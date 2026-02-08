@@ -94,5 +94,21 @@
     "observer": "Test",
     "notes": "",
     "synced": true
+  },
+  {
+    "id": "mldo4ckmgvowc",
+    "timestamp": "2026-02-08T11:36:53.158Z",
+    "latitude": -17.717283945907834,
+    "longitude": 168.32279923563476,
+    "accuracy": 12,
+    "island": "Erromango",
+    "siteName": "",
+    "species": "M. tuberosa",
+    "count": 90,
+    "threatLevel": "Low",
+    "coverageArea": 200,
+    "observer": "Test",
+    "notes": "test",
+    "synced": true
   }
 ]
