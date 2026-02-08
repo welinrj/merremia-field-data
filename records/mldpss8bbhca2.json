@@ -1,0 +1,16 @@
+{
+  "id": "mldpss8bbhca2",
+  "timestamp": "2026-02-08T12:23:52.811Z",
+  "latitude": -17.71727584801557,
+  "longitude": 168.32279032614426,
+  "accuracy": 7,
+  "island": "Efate",
+  "siteName": "home",
+  "species": "M. peltata",
+  "count": 1,
+  "threatLevel": "Low",
+  "coverageArea": 0,
+  "observer": "test from iphone",
+  "notes": "",
+  "synced": false
+}
