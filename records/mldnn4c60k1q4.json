@@ -1,0 +1,16 @@
+{
+  "id": "mldnn4c60k1q4",
+  "timestamp": "2026-02-08T11:23:29.334Z",
+  "latitude": -17.71728900412725,
+  "longitude": 168.32273712219927,
+  "accuracy": 17,
+  "island": "Epi",
+  "siteName": "Tesy",
+  "species": "M. gemella",
+  "count": 1,
+  "threatLevel": "High",
+  "coverageArea": 0,
+  "observer": "Micky",
+  "notes": "",
+  "synced": false
+}
