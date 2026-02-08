@@ -1,0 +1,16 @@
+{
+  "id": "mldmc54p4ml4g",
+  "timestamp": "2026-02-08T10:46:57.529Z",
+  "latitude": -17.71727620233542,
+  "longitude": 168.32278966444414,
+  "accuracy": 8,
+  "island": "Efate",
+  "siteName": "home",
+  "species": "Unknown Merremia",
+  "count": 1,
+  "threatLevel": "Low",
+  "coverageArea": 5,
+  "observer": "Micky",
+  "notes": "test from iphone",
+  "synced": false
+}
