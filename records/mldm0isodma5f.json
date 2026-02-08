@@ -1,0 +1,16 @@
+{
+  "id": "mldm0isodma5f",
+  "timestamp": "2026-02-08T10:37:55.368Z",
+  "latitude": -17.717288985206615,
+  "longitude": 168.32273711753393,
+  "accuracy": 18,
+  "island": "Epi",
+  "siteName": "Tomali",
+  "species": "M. peltata",
+  "count": 1,
+  "threatLevel": "High",
+  "coverageArea": 0,
+  "observer": "Micky",
+  "notes": "",
+  "synced": false
+}
