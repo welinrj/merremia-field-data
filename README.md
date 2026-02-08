@@ -286,4 +286,4 @@ The sync process creates these files in the data repo:
 
 ## License
 
-Built for the Merremia Vanuatu ecological monitoring project.
+Built for the Merremia Vanuatu ecological monitoring project by VANUA SPATIAL SOLUTIONS.
