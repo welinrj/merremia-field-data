@@ -62,5 +62,21 @@
     "observer": "test from iphone",
     "notes": "",
     "synced": true
+  },
+  {
+    "id": "mle69oy1e9vpm",
+    "timestamp": "2026-02-08T20:04:55.561Z",
+    "latitude": -17.717302841745834,
+    "longitude": 168.3227380651984,
+    "accuracy": 10,
+    "island": "Espiritu Santo",
+    "siteName": "banban",
+    "species": "M. peltata",
+    "count": 1,
+    "threatLevel": "Low",
+    "coverageArea": 0,
+    "observer": "test from iphone",
+    "notes": "",
+    "synced": true
   }
 ]
