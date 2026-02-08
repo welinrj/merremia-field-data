@@ -110,5 +110,21 @@
     "observer": "Test",
     "notes": "test",
     "synced": true
+  },
+  {
+    "id": "mldoaph1w6awc",
+    "timestamp": "2026-02-08T11:41:49.813Z",
+    "latitude": -17.71727667599349,
+    "longitude": 168.32279046713057,
+    "accuracy": 7,
+    "island": "Espiritu Santo",
+    "siteName": "bigbay inland",
+    "species": "M. peltata",
+    "count": 1,
+    "threatLevel": "Low",
+    "coverageArea": 300,
+    "observer": "Test",
+    "notes": "",
+    "synced": true
   }
 ]
