@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f1a0f">
+<title>Merremia Vanuatu Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<!-- ─── THE CONNECTOR ─── -->
+<script src="merremia-connector.js"></script>
+<style>
+  :root {
+    --bg: #0f1a0f;
+    --bg-card: #162216;
+    --bg-card-hover: #1d2e1d;
+    --border: #2a3f2a;
+    --green: #4ade80;
+    --green-dim: #22763c;
+    --green-glow: rgba(74,222,128,0.12);
+    --amber: #fbbf24;
+    --red: #f87171;
+    --text: #e2efe2;
+    --text-dim: #7a9a7a;
+    --text-muted: #4a6a4a;
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  .dash-header {
+    padding: 40px 32px 24px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .dash-header::before {
+    content: '';
+    position: absolute;
+    top: -100px; right: -100px;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(74,222,128,0.06) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+
+  .dash-header h1 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 36px;
+    font-weight: 400;
+    color: var(--text);
+    line-height: 1.1;
+  }
+
+  .dash-header h1 em { color: var(--green); font-style: italic; }
+
+  .dash-subtitle {
+    margin-top: 6px;
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+
+  .header-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .live-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    background: rgba(74,222,128,0.1);
+    border: 1px solid rgba(74,222,128,0.2);
+    border-radius: 20px;
+    font-size: 12px;
+    color: var(--green);
+    font-weight: 500;
+  }
+
+  .live-dot {
+    width: 8px; height: 8px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: livePulse 2s ease-in-out infinite;
+  }
+
+  @keyframes livePulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(74,222,128,0.4); }
+    50% { opacity: 0.6; box-shadow: 0 0 0 6px rgba(74,222,128,0); }
+  }
+
+  /* ── FILTERS BAR ── */
+  .filters-bar {
+    padding: 16px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .filter-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-right: 4px;
+  }
+
+  .filter-select {
+    padding: 8px 32px 8px 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='%237a9a7a' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+
+  .filter-select:focus {
+    outline: none;
+    border-color: var(--green);
+  }
+
+  .filter-reset {
+    padding: 8px 14px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-dim);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .filter-reset:hover {
+    border-color: var(--red);
+    color: var(--red);
+  }
+
+  /* ── MAIN GRID ── */
+  .dash-main {
+    padding: 24px 32px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+
+  /* ── STAT CARDS ── */
+  .stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    transition: all 0.25s;
+  }
+
+  .stat-card:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--green-dim);
+  }
+
+  .stat-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .stat-value {
+    font-family: 'Instrument Serif', serif;
+    font-size: 36px;
+    color: var(--green);
+    line-height: 1;
+  }
+
+  .stat-detail {
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  /* ── MAP ── */
+  .map-card {
+    grid-column: 1 / -1;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .card-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .card-subtitle {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  #dashMap {
+    height: 420px;
+    background: var(--bg);
+  }
+
+  /* Leaflet dark theme overrides */
+  .leaflet-container { background: var(--bg) !important; }
+  .leaflet-popup-content-wrapper {
+    background: var(--bg-card) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-sm) !important;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4) !important;
+  }
+  .leaflet-popup-tip { background: var(--bg-card) !important; }
+  .leaflet-popup-content { font-family: 'DM Sans', sans-serif; font-size: 13px; }
+  .leaflet-control-zoom a {
+    background: var(--bg-card) !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+  }
+
+  /* ── CHARTS ── */
+  .chart-card {
+    grid-column: span 2;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .chart-body {
+    padding: 16px 20px;
+    height: 280px;
+    position: relative;
+  }
+
+  /* ── SPECIES TABLE ── */
+  .table-card {
+    grid-column: 1 / -1;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .species-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .species-table th {
+    text-align: left;
+    padding: 12px 20px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .species-table td {
+    padding: 14px 20px;
+    font-size: 14px;
+    border-bottom: 1px solid rgba(42,63,42,0.5);
+  }
+
+  .species-table tr:last-child td { border-bottom: none; }
+
+  .species-table tr:hover td {
+    background: var(--bg-card-hover);
+  }
+
+  .species-name {
+    font-style: italic;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .threat-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .threat-badge.high { background: rgba(248,113,113,0.15); color: var(--red); }
+  .threat-badge.moderate { background: rgba(251,191,36,0.15); color: var(--amber); }
+  .threat-badge.low { background: rgba(74,222,128,0.15); color: var(--green); }
+
+  /* ── RECENT RECORDS ── */
+  .recent-card {
+    grid-column: 1 / -1;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .recent-list {
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  .recent-item {
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(42,63,42,0.5);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: background 0.2s;
+  }
+
+  .recent-item:hover { background: var(--bg-card-hover); }
+  .recent-item:last-child { border-bottom: none; }
+
+  .recent-dot {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+  }
+
+  .recent-dot.high { background: var(--red); }
+  .recent-dot.moderate { background: var(--amber); }
+  .recent-dot.low { background: var(--green); }
+
+  .recent-info { flex: 1; }
+  .recent-species { font-size: 14px; font-weight: 500; font-style: italic; }
+  .recent-meta { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .recent-time { font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
+
+  /* ── LOADING ── */
+  .loading-overlay {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--text-dim);
+  }
+
+  .loading-spinner {
+    width: 40px; height: 40px;
+    border: 3px solid var(--border);
+    border-top-color: var(--green);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── EMPTY STATE ── */
+  .empty-dash {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--text-dim);
+  }
+
+  .empty-dash .empty-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.4; }
+
+  /* ── FOOTER ── */
+  .dash-footer {
+    padding: 20px 32px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    .dash-main { grid-template-columns: repeat(2, 1fr); }
+    .chart-card { grid-column: 1 / -1; }
+    .dash-header, .filters-bar, .dash-main { padding-left: 16px; padding-right: 16px; }
+  }
+
+  @media (max-width: 600px) {
+    .dash-main { grid-template-columns: 1fr; }
+    .stat-card { grid-column: 1; }
+    .dash-header h1 { font-size: 28px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="dash-header">
+  <div class="header-row">
+    <div>
+      <h1><em>Merremia</em> Vanuatu Dashboard</h1>
+      <p class="dash-subtitle">Invasive vine species monitoring across Vanuatu islands</p>
+    </div>
+    <div class="live-indicator" id="liveIndicator">
+      <div class="live-dot"></div>
+      <span id="liveText">Connecting...</span>
+    </div>
+  </div>
+</div>
+
+<!-- FILTERS -->
+<div class="filters-bar">
+  <span class="filter-label">Filter:</span>
+  <select class="filter-select" id="filterIsland" onchange="applyFilters()">
+    <option value="">All Islands</option>
+  </select>
+  <select class="filter-select" id="filterSpecies" onchange="applyFilters()">
+    <option value="">All Species</option>
+  </select>
+  <select class="filter-select" id="filterThreat" onchange="applyFilters()">
+    <option value="">All Threat Levels</option>
+    <option value="high">🔴 High</option>
+    <option value="moderate">🟡 Moderate</option>
+    <option value="low">🟢 Low</option>
+  </select>
+  <button class="filter-reset" onclick="resetFilters()">✕ Reset</button>
+</div>
+
+<!-- MAIN DASHBOARD -->
+<div class="dash-main" id="dashMain">
+  <div class="loading-overlay" id="loadingState">
+    <div class="loading-spinner"></div>
+    <p>Loading field data...</p>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="dash-footer">
+  Merremia Vanuatu Dashboard — Ecological Monitoring Project · Data synced from field collectors
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// CONFIG — Change these to match your repos
+// ══════════════════════════════════════════
+const CONNECTOR_CONFIG = {
+  owner: 'welinrj',
+  repo: 'merremia-field-data',
+  branch: 'main'
+};
+
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+let connector;
+let dashData = null;
+let map = null;
+let mapLayer = null;
+let islandChart = null;
+let timelineChart = null;
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  connector = new MerremiaConnector(CONNECTOR_CONFIG);
+
+  connector.startAutoRefresh(300000, (data) => {
+    dashData = data;
+    renderDashboard(data);
+    updateLiveStatus(data);
+  });
+});
+
+// ══════════════════════════════════════════
+// LIVE STATUS
+// ══════════════════════════════════════════
+function updateLiveStatus(data) {
+  const el = document.getElementById('liveText');
+  if (data.totalRecords > 0) {
+    const last = new Date(data.lastUpdated);
+    el.textContent = `Live · ${data.totalRecords} records · Updated ${timeAgo(last)}`;
+  } else {
+    el.textContent = 'Connected · No field data yet';
+  }
+}
+
+function timeAgo(date) {
+  const diff = Date.now() - date.getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
+// ══════════════════════════════════════════
+// RENDER DASHBOARD
+// ══════════════════════════════════════════
+function renderDashboard(data) {
+  const main = document.getElementById('dashMain');
+  document.getElementById('loadingState')?.remove();
+
+  if (data.totalRecords === 0) {
+    main.innerHTML = `
+      <div class="empty-dash">
+        <div class="empty-icon">🌿</div>
+        <p>No field data yet.<br>Deploy the Field Collector app and start collecting data!</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Only rebuild structure on first render
+  if (!main.querySelector('.stat-card')) {
+    main.innerHTML = buildDashboardHTML();
+    initMap();
+    initCharts();
+  }
+
+  updateStats(data.stats);
+  updateMap(data);
+  updateCharts(data);
+  updateSpeciesTable(data.bySpecies);
+  updateRecentRecords(data.records);
+  populateFilters(data.stats);
+}
+
+function buildDashboardHTML() {
+  return `
+    <!-- Stats Row -->
+    <div class="stat-card">
+      <div class="stat-label">Species Tracked</div>
+      <div class="stat-value" id="statSpecies">—</div>
+      <div class="stat-detail" id="statSpeciesDetail">Merremia spp.</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Survey Sites</div>
+      <div class="stat-value" id="statSites">—</div>
+      <div class="stat-detail" id="statSitesDetail">across islands</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Area Affected</div>
+      <div class="stat-value" id="statArea">—</div>
+      <div class="stat-detail" id="statAreaDetail">hectares</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Observations</div>
+      <div class="stat-value" id="statObs">—</div>
+      <div class="stat-detail" id="statObsDetail">field records</div>
+    </div>
+
+    <!-- Map -->
+    <div class="map-card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Distribution Map</div>
+          <div class="card-subtitle">GPS-tagged field observations</div>
+        </div>
+      </div>
+      <div id="dashMap"></div>
+    </div>
+
+    <!-- Charts -->
+    <div class="chart-card">
+      <div class="card-header">
+        <div class="card-title">Coverage by Island</div>
+      </div>
+      <div class="chart-body">
+        <canvas id="chartIsland"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="card-header">
+        <div class="card-title">Collection Timeline</div>
+      </div>
+      <div class="chart-body">
+        <canvas id="chartTimeline"></canvas>
+      </div>
+    </div>
+
+    <!-- Species Table -->
+    <div class="table-card">
+      <div class="card-header">
+        <div class="card-title">Species Observations</div>
+      </div>
+      <table class="species-table">
+        <thead>
+          <tr>
+            <th>Species</th>
+            <th>Count</th>
+            <th>Islands</th>
+            <th>Primary Threat</th>
+          </tr>
+        </thead>
+        <tbody id="speciesTableBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Recent Records -->
+    <div class="recent-card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Recent Field Records</div>
+          <div class="card-subtitle">Latest observations from field collectors</div>
+        </div>
+      </div>
+      <div class="recent-list" id="recentList"></div>
+    </div>
+  `;
+}
+
+// ══════════════════════════════════════════
+// UPDATE FUNCTIONS
+// ══════════════════════════════════════════
+function updateStats(stats) {
+  document.getElementById('statSpecies').textContent = stats.speciesCount;
+  document.getElementById('statSpeciesDetail').textContent = `Merremia spp. identified`;
+  document.getElementById('statSites').textContent = stats.siteCount;
+  document.getElementById('statSitesDetail').textContent = `Across ${stats.islandCount} islands`;
+  document.getElementById('statArea').textContent = stats.totalAreaHectares > 0
+    ? `${stats.totalAreaHectares.toLocaleString()}`
+    : '—';
+  document.getElementById('statAreaDetail').textContent = 'hectares surveyed';
+  document.getElementById('statObs').textContent = stats.totalObservations.toLocaleString();
+  document.getElementById('statObsDetail').textContent = `${stats.recordCount} field records`;
+}
+
+// ══════════════════════════════════════════
+// MAP
+// ══════════════════════════════════════════
+function initMap() {
+  map = L.map('dashMap', {
+    zoomControl: true,
+    attributionControl: false
+  }).setView([-17.7, 168.3], 7);
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19
+  }).addTo(map);
+
+  mapLayer = L.layerGroup().addTo(map);
+}
+
+function updateMap(data) {
+  if (!mapLayer) return;
+  mapLayer.clearLayers();
+
+  const geojson = data.geoJSON;
+  if (!geojson || geojson.features.length === 0) return;
+
+  // Apply current filters
+  const filteredFeatures = applyGeoJSONFilters(geojson.features);
+
+  L.geoJSON({ type: 'FeatureCollection', features: filteredFeatures }, {
+    pointToLayer: (feature, latlng) => {
+      const colors = { high: '#f87171', moderate: '#fbbf24', low: '#4ade80' };
+      const color = colors[feature.properties.threatLevel] || '#888';
+      return L.circleMarker(latlng, {
+        radius: 8,
+        fillColor: color,
+        color: '#fff',
+        weight: 2,
+        fillOpacity: 0.85
+      });
+    },
+    onEachFeature: (feature, layer) => {
+      const p = feature.properties;
+      layer.bindPopup(`
+        <div style="min-width:180px">
+          <strong style="font-size:14px;font-style:italic">${p.speciesLabel}</strong><br>
+          <span style="color:#7a9a7a">${p.island || 'Unknown'} · ${p.siteName || ''}</span><br>
+          <div style="margin-top:6px; font-size:12px;">
+            Count: <strong>${p.count || '—'}</strong> · 
+            Threat: <strong>${p.threatLevel}</strong><br>
+            Observer: ${p.observer || '—'}<br>
+            ${new Date(p.timestamp).toLocaleDateString()}
+          </div>
+        </div>
+      `);
+    }
+  }).addTo(mapLayer);
+
+  // Fit map to data bounds
+  if (filteredFeatures.length > 0) {
+    const coords = filteredFeatures.map(f => [f.geometry.coordinates[1], f.geometry.coordinates[0]]);
+    map.fitBounds(coords, { padding: [40, 40], maxZoom: 12 });
+  }
+}
+
+function applyGeoJSONFilters(features) {
+  const island = document.getElementById('filterIsland')?.value;
+  const species = document.getElementById('filterSpecies')?.value;
+  const threat = document.getElementById('filterThreat')?.value;
+
+  return features.filter(f => {
+    const p = f.properties;
+    if (island && p.island !== island) return false;
+    if (species && !p.speciesLabel.includes(species)) return false;
+    if (threat && p.threatLevel !== threat) return false;
+    return true;
+  });
+}
+
+// ══════════════════════════════════════════
+// CHARTS
+// ══════════════════════════════════════════
+const chartDefaults = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { display: false },
+  },
+  scales: {
+    x: {
+      grid: { color: 'rgba(42,63,42,0.3)' },
+      ticks: { color: '#7a9a7a', font: { family: 'DM Sans', size: 11 } }
+    },
+    y: {
+      grid: { color: 'rgba(42,63,42,0.3)' },
+      ticks: { color: '#7a9a7a', font: { family: 'DM Sans', size: 11 } }
+    }
+  }
+};
+
+function initCharts() {
+  const islandCtx = document.getElementById('chartIsland').getContext('2d');
+  islandChart = new Chart(islandCtx, {
+    type: 'bar',
+    data: { labels: [], datasets: [{ data: [], backgroundColor: '#4ade80', borderRadius: 6 }] },
+    options: { ...chartDefaults }
+  });
+
+  const timelineCtx = document.getElementById('chartTimeline').getContext('2d');
+  timelineChart = new Chart(timelineCtx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        data: [],
+        borderColor: '#4ade80',
+        backgroundColor: 'rgba(74,222,128,0.1)',
+        borderWidth: 2,
+        fill: true,
+        tension: 0.3,
+        pointBackgroundColor: '#4ade80',
+        pointRadius: 4
+      }]
+    },
+    options: { ...chartDefaults }
+  });
+}
+
+function updateCharts(data) {
+  if (!islandChart || !timelineChart) return;
+
+  // Island chart
+  const islands = Object.entries(data.byIsland)
+    .sort((a, b) => b[1].totalCount - a[1].totalCount);
+  islandChart.data.labels = islands.map(([name]) => name);
+  islandChart.data.datasets[0].data = islands.map(([, d]) => d.totalCount);
+  islandChart.update('none');
+
+  // Timeline chart
+  timelineChart.data.labels = data.timeline.map(t => t.month);
+  timelineChart.data.datasets[0].data = data.timeline.map(t => t.count);
+  timelineChart.update('none');
+}
+
+// ══════════════════════════════════════════
+// SPECIES TABLE
+// ══════════════════════════════════════════
+function updateSpeciesTable(bySpecies) {
+  const tbody = document.getElementById('speciesTableBody');
+  if (!tbody) return;
+
+  const sorted = Object.entries(bySpecies)
+    .sort((a, b) => b[1].totalCount - a[1].totalCount);
+
+  tbody.innerHTML = sorted.map(([name, data]) => {
+    const topThreat = ['high', 'moderate', 'low'].find(t => data.threats[t] > 0) || 'low';
+    return `
+      <tr>
+        <td><span class="species-name">${name}</span></td>
+        <td>${data.totalCount.toLocaleString()}</td>
+        <td style="color:var(--text-dim)">${data.islands.join(', ')}</td>
+        <td><span class="threat-badge ${topThreat}">${topThreat.charAt(0).toUpperCase() + topThreat.slice(1)}</span></td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// ══════════════════════════════════════════
+// RECENT RECORDS
+// ══════════════════════════════════════════
+function updateRecentRecords(records) {
+  const list = document.getElementById('recentList');
+  if (!list) return;
+
+  const recent = records.slice(0, 15);
+  list.innerHTML = recent.map(r => `
+    <div class="recent-item">
+      <div class="recent-dot ${r.threatLevel}"></div>
+      <div class="recent-info">
+        <div class="recent-species">${r.species.join(', ')}</div>
+        <div class="recent-meta">${r.island || 'Unknown'} · ${r.siteName || '—'} · ${r.observer || 'Unknown observer'}</div>
+      </div>
+      <div class="recent-time">${timeAgo(new Date(r.timestamp))}</div>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════════
+// FILTERS
+// ══════════════════════════════════════════
+function populateFilters(stats) {
+  const islandSelect = document.getElementById('filterIsland');
+  const speciesSelect = document.getElementById('filterSpecies');
+
+  // Only populate if empty (first render)
+  if (islandSelect.options.length <= 1) {
+    stats.islandList.forEach(island => {
+      const opt = document.createElement('option');
+      opt.value = island;
+      opt.textContent = island;
+      islandSelect.appendChild(opt);
+    });
+  }
+
+  if (speciesSelect.options.length <= 1) {
+    stats.speciesList.forEach(sp => {
+      const opt = document.createElement('option');
+      opt.value = sp;
+      opt.textContent = sp;
+      speciesSelect.appendChild(opt);
+    });
+  }
+}
+
+function applyFilters() {
+  if (!dashData || !connector) return;
+
+  const island = document.getElementById('filterIsland').value;
+  const species = document.getElementById('filterSpecies').value;
+  const threat = document.getElementById('filterThreat').value;
+
+  const filtered = connector.filterRecords(dashData.records, {
+    island: island || undefined,
+    species: species || undefined,
+    threat: threat || undefined
+  });
+
+  // Reprocess filtered records for display
+  const processedFiltered = connector.processRecords
+    ? { ...dashData, ...connector.processRecords(filtered) }
+    : dashData;
+
+  // Reprocess filtered data manually
+  const filteredData = reprocessForDisplay(filtered);
+  updateStats(filteredData.stats);
+  updateMap(dashData); // Map uses its own filter
+  updateCharts(filteredData);
+  updateSpeciesTable(filteredData.bySpecies);
+  updateRecentRecords(filtered);
+}
+
+function reprocessForDisplay(records) {
+  // Quick reprocess for filtered view
+  const stats = {
+    speciesCount: new Set(records.flatMap(r => r.species)).size,
+    speciesList: [...new Set(records.flatMap(r => r.species))].sort(),
+    islandCount: new Set(records.map(r => r.island).filter(Boolean)).size,
+    islandList: [...new Set(records.map(r => r.island).filter(Boolean))].sort(),
+    siteCount: new Set(records.map(r => r.siteName).filter(Boolean)).size,
+    totalObservations: records.reduce((s, r) => s + (r.count || 0), 0),
+    totalAreaHectares: Math.round(records.reduce((s, r) => s + (r.coverageArea || 0), 0) * 10) / 10,
+    recordCount: records.length,
+    threatBreakdown: {
+      high: records.filter(r => r.threatLevel === 'high').length,
+      moderate: records.filter(r => r.threatLevel === 'moderate').length,
+      low: records.filter(r => r.threatLevel === 'low').length
+    }
+  };
+
+  const byIsland = {};
+  records.forEach(r => {
+    const island = r.island || 'Unknown';
+    if (!byIsland[island]) byIsland[island] = { totalCount: 0 };
+    if (r.count) byIsland[island].totalCount += r.count;
+  });
+
+  const bySpecies = {};
+  records.forEach(r => {
+    (r.species || []).forEach(sp => {
+      if (!bySpecies[sp]) bySpecies[sp] = { totalCount: 0, islands: new Set(), threats: { high: 0, moderate: 0, low: 0 } };
+      if (r.count) bySpecies[sp].totalCount += r.count;
+      if (r.island) bySpecies[sp].islands.add(r.island);
+      if (r.threatLevel) bySpecies[sp].threats[r.threatLevel]++;
+    });
+  });
+  Object.values(bySpecies).forEach(g => { g.islands = [...g.islands]; });
+
+  const byMonth = {};
+  records.forEach(r => {
+    const d = new Date(r.timestamp);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    if (!byMonth[key]) byMonth[key] = { month: key, count: 0 };
+    if (r.count) byMonth[key].count += r.count;
+  });
+  const timeline = Object.values(byMonth).sort((a, b) => a.month.localeCompare(b.month));
+
+  return { stats, byIsland, bySpecies, timeline };
+}
+
+function resetFilters() {
+  document.getElementById('filterIsland').value = '';
+  document.getElementById('filterSpecies').value = '';
+  document.getElementById('filterThreat').value = '';
+  if (dashData) renderDashboard(dashData);
+}
+</script>
+</body>
+</html>

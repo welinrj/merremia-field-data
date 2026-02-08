@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1a2e1a">
+<meta name="description" content="Offline-first field data collection for invasive vine monitoring in Vanuatu">
+<title>Merremia Field Collector</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green-deep: #1a2e1a;
+    --green-dark: #2d4a2d;
+    --green-mid: #4a7c4a;
+    --green-light: #7db87d;
+    --green-pale: #c8e6c8;
+    --green-wash: #e8f5e8;
+    --amber: #d4a017;
+    --amber-light: #f5deb3;
+    --red: #c0392b;
+    --red-light: #fadbd8;
+    --white: #fafdf7;
+    --gray-100: #f0f4ed;
+    --gray-200: #dce3d8;
+    --gray-300: #b8c4b0;
+    --gray-400: #8a9a80;
+    --gray-500: #5c6e54;
+    --shadow-sm: 0 1px 3px rgba(26,46,26,0.08);
+    --shadow-md: 0 4px 12px rgba(26,46,26,0.12);
+    --shadow-lg: 0 8px 30px rgba(26,46,26,0.16);
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--gray-100);
+    color: var(--green-deep);
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  /* ── STATUS BAR ── */
+  .status-bar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 20px;
+    background: var(--green-deep);
+    color: var(--green-pale);
+    font-size: 12px; font-weight: 500; letter-spacing: 0.5px;
+  }
+
+  .status-bar .sync-indicator { display: flex; align-items: center; gap: 6px; }
+
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green-light);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  .status-dot.offline { background: var(--amber); animation: none; }
+  .status-dot.syncing { background: var(--amber); animation: spin-dot 1s linear infinite; }
+  .status-dot.error { background: var(--red); animation: none; }
+
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  @keyframes spin-dot { 0% { transform: scale(1); } 50% { transform: scale(1.4); } 100% { transform: scale(1); } }
+
+  /* ── HEADER ── */
+  .header {
+    margin-top: 44px; padding: 28px 20px 20px;
+    background: linear-gradient(165deg, var(--green-deep) 0%, var(--green-dark) 100%);
+    position: relative; overflow: hidden;
+  }
+  .header::before {
+    content: ''; position: absolute; top: -30%; right: -20%;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(125,184,125,0.15) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .header h1 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 28px; color: var(--white); font-weight: 400; line-height: 1.1;
+  }
+  .header h1 em { color: var(--green-light); font-style: italic; }
+  .header p { margin-top: 6px; color: var(--gray-300); font-size: 13px; }
+
+  .header-badges { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+
+  .queue-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px;
+    background: rgba(125,184,125,0.15); border: 1px solid rgba(125,184,125,0.25);
+    border-radius: 20px; font-size: 12px; color: var(--green-pale); font-weight: 500;
+  }
+  .queue-count {
+    background: var(--green-mid); color: white;
+    width: 20px; height: 20px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+  }
+
+  .install-badge {
+    display: none; align-items: center; gap: 6px;
+    padding: 6px 14px;
+    background: rgba(212,160,23,0.2); border: 1px solid rgba(212,160,23,0.35);
+    border-radius: 20px; font-size: 12px; color: var(--amber-light);
+    font-weight: 500; cursor: pointer; transition: all 0.2s;
+  }
+  .install-badge:active { transform: scale(0.96); }
+
+  /* ── NAV TABS ── */
+  .nav-tabs {
+    display: flex; background: var(--white);
+    border-bottom: 1px solid var(--gray-200);
+    position: sticky; top: 44px; z-index: 100;
+  }
+  .nav-tab {
+    flex: 1; padding: 14px 8px; text-align: center;
+    font-size: 12px; font-weight: 600; color: var(--gray-400);
+    border: none; background: none; cursor: pointer; position: relative;
+    transition: color 0.2s; text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  .nav-tab.active { color: var(--green-dark); }
+  .nav-tab.active::after {
+    content: ''; position: absolute; bottom: 0; left: 20%; right: 20%;
+    height: 3px; background: var(--green-mid); border-radius: 3px 3px 0 0;
+  }
+  .nav-tab .tab-icon { display: block; font-size: 18px; margin-bottom: 3px; }
+  .nav-tab .tab-badge {
+    position: absolute; top: 8px; right: calc(50% - 24px);
+    background: var(--red); color: white;
+    width: 16px; height: 16px; border-radius: 50%;
+    font-size: 10px; font-weight: 700;
+    display: none; align-items: center; justify-content: center;
+  }
+
+  /* ── PAGES ── */
+  .page { display: none; padding: 20px; padding-bottom: 100px; animation: fadeIn 0.25s ease; }
+  .page.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── FORM ELEMENTS ── */
+  .form-section { margin-bottom: 20px; }
+  .form-section-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--gray-400); margin-bottom: 10px; padding-left: 2px;
+  }
+  .form-card {
+    background: var(--white); border-radius: var(--radius); padding: 18px;
+    box-shadow: var(--shadow-sm); border: 1px solid var(--gray-200);
+  }
+  .form-group { margin-bottom: 16px; }
+  .form-group:last-child { margin-bottom: 0; }
+  .form-label { display: block; font-size: 13px; font-weight: 600; color: var(--green-deep); margin-bottom: 6px; }
+
+  .form-input, .form-textarea, .form-select {
+    width: 100%; padding: 12px 14px;
+    border: 1.5px solid var(--gray-200); border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif; font-size: 15px;
+    color: var(--green-deep); background: var(--white);
+    transition: border-color 0.2s, box-shadow 0.2s; -webkit-appearance: none;
+  }
+  .form-input:focus, .form-textarea:focus, .form-select:focus {
+    outline: none; border-color: var(--green-mid);
+    box-shadow: 0 0 0 3px rgba(74,124,74,0.12);
+  }
+  .form-textarea { min-height: 80px; resize: vertical; }
+  .form-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%235c6e54' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px;
+  }
+
+  /* ── SPECIES CHIPS ── */
+  .species-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .species-chip {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px; border: 1.5px solid var(--gray-200);
+    border-radius: var(--radius-sm); background: var(--white);
+    cursor: pointer; transition: all 0.2s; font-size: 13px; color: var(--green-deep);
+  }
+  .species-chip:active { transform: scale(0.97); }
+  .species-chip.selected { border-color: var(--green-mid); background: var(--green-wash); }
+  .species-chip .chip-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    border: 2px solid var(--gray-300); flex-shrink: 0; transition: all 0.2s;
+  }
+  .species-chip.selected .chip-dot {
+    border-color: var(--green-mid); background: var(--green-mid);
+    box-shadow: inset 0 0 0 2px white;
+  }
+  .species-chip .chip-label { font-style: italic; font-weight: 500; line-height: 1.2; }
+
+  /* ── THREAT LEVEL ── */
+  .threat-options { display: flex; gap: 8px; }
+  .threat-btn {
+    flex: 1; padding: 10px; border: 1.5px solid var(--gray-200);
+    border-radius: var(--radius-sm); background: var(--white); cursor: pointer;
+    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+    text-align: center; transition: all 0.2s;
+  }
+  .threat-btn:active { transform: scale(0.96); }
+  .threat-btn[data-threat="high"] { color: var(--red); }
+  .threat-btn[data-threat="moderate"] { color: var(--amber); }
+  .threat-btn[data-threat="low"] { color: var(--green-mid); }
+  .threat-btn.selected[data-threat="high"] { background: var(--red-light); border-color: var(--red); }
+  .threat-btn.selected[data-threat="moderate"] { background: var(--amber-light); border-color: var(--amber); }
+  .threat-btn.selected[data-threat="low"] { background: var(--green-wash); border-color: var(--green-mid); }
+
+  /* ── GPS CARD ── */
+  .gps-card {
+    display: flex; align-items: center; gap: 14px; padding: 14px;
+    background: var(--green-wash); border: 1.5px solid var(--green-pale);
+    border-radius: var(--radius-sm);
+  }
+  .gps-card.searching { background: var(--amber-light); border-color: var(--amber); }
+  .gps-card.error { background: var(--red-light); border-color: var(--red); }
+  .gps-icon {
+    width: 40px; height: 40px; border-radius: 50%; background: var(--green-mid);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+  }
+  .gps-card.searching .gps-icon { background: var(--amber); }
+  .gps-card.error .gps-icon { background: var(--red); }
+  .gps-info { flex: 1; }
+  .gps-coords { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .gps-accuracy { font-size: 11px; color: var(--gray-400); margin-top: 2px; }
+  .gps-refresh {
+    padding: 8px; border: none; background: rgba(0,0,0,0.08);
+    border-radius: 50%; cursor: pointer; font-size: 16px; transition: transform 0.3s;
+  }
+  .gps-refresh:active { transform: rotate(180deg); }
+
+  /* ── PHOTO CAPTURE ── */
+  .photo-area { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .photo-add {
+    aspect-ratio: 1; border: 2px dashed var(--gray-300);
+    border-radius: var(--radius-sm); display: flex; flex-direction: column;
+    align-items: center; justify-content: center; cursor: pointer;
+    transition: all 0.2s; background: var(--gray-100);
+    color: var(--gray-400); font-size: 12px; gap: 4px;
+  }
+  .photo-add:active { background: var(--green-wash); border-color: var(--green-mid); }
+  .photo-add .plus-icon { font-size: 24px; }
+  .photo-thumb {
+    aspect-ratio: 1; border-radius: var(--radius-sm);
+    overflow: hidden; position: relative;
+  }
+  .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-remove {
+    position: absolute; top: 4px; right: 4px;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: rgba(0,0,0,0.6); color: white; border: none;
+    cursor: pointer; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ── SUBMIT BUTTON ── */
+  .submit-btn {
+    width: 100%; padding: 16px;
+    background: linear-gradient(135deg, var(--green-dark), var(--green-mid));
+    color: white; border: none; border-radius: var(--radius);
+    font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 700;
+    cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow-md);
+    letter-spacing: 0.3px; position: relative; overflow: hidden;
+  }
+  .submit-btn:active { transform: scale(0.98); box-shadow: var(--shadow-sm); }
+  .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .submit-btn .btn-content { transition: opacity 0.2s; }
+  .submit-btn.loading .btn-content { opacity: 0; }
+  .submit-btn .spinner { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; }
+  .submit-btn.loading .spinner { display: flex; }
+  .spinner::after {
+    content: ''; width: 22px; height: 22px;
+    border: 3px solid rgba(255,255,255,0.3); border-top-color: white;
+    border-radius: 50%; animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── QUEUE LIST ── */
+  .queue-item {
+    background: var(--white); border-radius: var(--radius); padding: 16px;
+    margin-bottom: 10px; box-shadow: var(--shadow-sm); border: 1px solid var(--gray-200);
+    display: flex; align-items: center; gap: 14px;
+  }
+  .queue-item-icon {
+    width: 42px; height: 42px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+  }
+  .queue-item-icon.pending { background: var(--amber-light); }
+  .queue-item-icon.synced { background: var(--green-wash); }
+  .queue-item-info { flex: 1; min-width: 0; }
+  .queue-item-species { font-size: 14px; font-weight: 600; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .queue-item-meta { font-size: 12px; color: var(--gray-400); margin-top: 2px; }
+  .queue-item-status {
+    font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 12px; flex-shrink: 0;
+  }
+  .queue-item-status.pending { background: var(--amber-light); color: #8B6914; }
+  .queue-item-status.synced { background: var(--green-wash); color: var(--green-dark); }
+  .queue-item-actions { display: flex; gap: 4px; flex-shrink: 0; }
+  .queue-item-delete {
+    padding: 6px; border: none; background: none;
+    cursor: pointer; font-size: 16px; color: var(--gray-300); transition: color 0.2s;
+  }
+  .queue-item-delete:hover { color: var(--red); }
+
+  /* ── SETTINGS ── */
+  .settings-item {
+    background: var(--white); border-radius: var(--radius); padding: 16px;
+    margin-bottom: 10px; box-shadow: var(--shadow-sm); border: 1px solid var(--gray-200);
+  }
+  .settings-item label { font-size: 14px; font-weight: 600; display: block; margin-bottom: 4px; }
+  .settings-item .hint { font-size: 12px; color: var(--gray-400); margin-bottom: 10px; }
+
+  .sync-all-btn {
+    width: 100%; padding: 14px; background: var(--green-deep); color: var(--green-pale);
+    border: none; border-radius: var(--radius);
+    font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+    cursor: pointer; margin-top: 16px; transition: all 0.2s;
+  }
+  .sync-all-btn:active { transform: scale(0.98); }
+  .sync-all-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .clear-btn {
+    width: 100%; padding: 14px; background: var(--red-light); color: var(--red);
+    border: 1.5px solid var(--red); border-radius: var(--radius);
+    font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+    cursor: pointer; margin-top: 8px; transition: all 0.2s;
+  }
+
+  /* ── AUTO-SYNC TOGGLE ── */
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 4px 0;
+  }
+  .toggle-label { font-size: 14px; font-weight: 500; }
+  .toggle-switch {
+    position: relative; width: 48px; height: 28px; cursor: pointer;
+  }
+  .toggle-switch input { display: none; }
+  .toggle-track {
+    position: absolute; inset: 0; background: var(--gray-300);
+    border-radius: 14px; transition: background 0.2s;
+  }
+  .toggle-switch input:checked + .toggle-track { background: var(--green-mid); }
+  .toggle-knob {
+    position: absolute; top: 2px; left: 2px;
+    width: 24px; height: 24px; background: white;
+    border-radius: 50%; box-shadow: var(--shadow-sm);
+    transition: transform 0.2s;
+  }
+  .toggle-switch input:checked ~ .toggle-knob { transform: translateX(20px); }
+
+  /* ── EMPTY STATE ── */
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--gray-400); }
+  .empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.5; }
+  .empty-state p { font-size: 14px; line-height: 1.5; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 80px; left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--green-deep); color: var(--white);
+    padding: 12px 24px; border-radius: 30px;
+    font-size: 14px; font-weight: 500; box-shadow: var(--shadow-lg);
+    z-index: 2000; transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    white-space: nowrap; max-width: 90vw; overflow: hidden; text-overflow: ellipsis;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── SUCCESS OVERLAY ── */
+  .success-overlay {
+    position: fixed; inset: 0; background: rgba(26,46,26,0.85);
+    display: none; align-items: center; justify-content: center;
+    z-index: 5000; flex-direction: column; gap: 16px;
+  }
+  .success-overlay.show { display: flex; }
+  .success-check {
+    width: 80px; height: 80px; border-radius: 50%; background: var(--green-mid);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 40px; animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
+  .success-text { color: var(--white); font-size: 18px; font-weight: 600; }
+
+  /* ── UPDATE BANNER ── */
+  .update-banner {
+    display: none; position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--green-deep); color: var(--white);
+    padding: 14px 20px; text-align: center; z-index: 4000;
+    font-size: 14px; cursor: pointer; font-weight: 500;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.2);
+  }
+  .update-banner.show { display: block; }
+
+  @media (min-width: 600px) {
+    .page { max-width: 500px; margin: 0 auto; }
+    .species-grid { grid-template-columns: 1fr 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- STATUS BAR -->
+<div class="status-bar">
+  <div class="sync-indicator">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText">Online</span>
+  </div>
+  <span id="statusTime"></span>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <h1><em>Merremia</em> Field Collector</h1>
+  <p>Invasive vine monitoring — Vanuatu</p>
+  <div class="header-badges">
+    <div class="queue-badge">
+      <div class="queue-count" id="queueCount">0</div>
+      <span>in queue</span>
+    </div>
+    <div class="install-badge" id="installBadge" onclick="installApp()">
+      📲 Install App
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<div class="nav-tabs">
+  <button class="nav-tab active" data-tab="collect">
+    <span class="tab-icon">📋</span>Collect
+  </button>
+  <button class="nav-tab" data-tab="queue">
+    <span class="tab-icon">📤</span>Queue
+    <span class="tab-badge" id="queueTabBadge"></span>
+  </button>
+  <button class="nav-tab" data-tab="settings">
+    <span class="tab-icon">⚙️</span>Settings
+  </button>
+</div>
+
+<!-- ===== COLLECT PAGE ===== -->
+<div class="page active" id="page-collect">
+  <div class="form-section">
+    <div class="form-section-title">📍 Location</div>
+    <div class="form-card">
+      <div class="gps-card searching" id="gpsCard">
+        <div class="gps-icon">📍</div>
+        <div class="gps-info">
+          <div class="gps-coords" id="gpsCoords">Acquiring GPS...</div>
+          <div class="gps-accuracy" id="gpsAccuracy">Searching for satellites</div>
+        </div>
+        <button class="gps-refresh" onclick="refreshGPS()" title="Refresh GPS">🔄</button>
+      </div>
+      <div class="form-group" style="margin-top: 14px;">
+        <label class="form-label">Island</label>
+        <select class="form-select" id="fieldIsland">
+          <option value="">Select island...</option>
+          <option value="Efate">Efate</option>
+          <option value="Espiritu Santo">Espiritu Santo</option>
+          <option value="Tanna">Tanna</option>
+          <option value="Malakula">Malakula</option>
+          <option value="Ambrym">Ambrym</option>
+          <option value="Epi">Epi</option>
+          <option value="Erromango">Erromango</option>
+          <option value="Pentecost">Pentecost</option>
+          <option value="Ambae">Ambae</option>
+          <option value="Vanua Lava">Vanua Lava</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Site Name</label>
+        <input type="text" class="form-input" id="fieldSiteName" placeholder="e.g. Mele Bay coastal road">
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-section-title">🌿 Species Observation</div>
+    <div class="form-card">
+      <div class="form-group">
+        <label class="form-label">Species Identified</label>
+        <div class="species-grid" id="speciesGrid">
+          <div class="species-chip" data-species="M. peltata" onclick="toggleSpecies(this)"><div class="chip-dot"></div><span class="chip-label">M. peltata</span></div>
+          <div class="species-chip" data-species="M. vitifolia" onclick="toggleSpecies(this)"><div class="chip-dot"></div><span class="chip-label">M. vitifolia</span></div>
+          <div class="species-chip" data-species="M. tridentata" onclick="toggleSpecies(this)"><div class="chip-dot"></div><span class="chip-label">M. tridentata</span></div>
+          <div class="species-chip" data-species="M. gemella" onclick="toggleSpecies(this)"><div class="chip-dot"></div><span class="chip-label">M. gemella</span></div>
+          <div class="species-chip" data-species="M. umbellata" onclick="toggleSpecies(this)"><div class="chip-dot"></div><span class="chip-label">M. umbellata</span></div>
+          <div class="species-chip" data-species="M. tuberosa" onclick="toggleSpecies(this)"><div class="chip-dot"></div><span class="chip-label">M. tuberosa</span></div>
+          <div class="species-chip" data-species="M. dissecta" onclick="toggleSpecies(this)"><div class="chip-dot"></div><span class="chip-label">M. dissecta</span></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Observation Count</label>
+        <input type="number" class="form-input" id="fieldCount" placeholder="Estimated count" min="1">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Threat Level</label>
+        <div class="threat-options">
+          <button class="threat-btn" data-threat="high" onclick="selectThreat(this)">🔴 High</button>
+          <button class="threat-btn" data-threat="moderate" onclick="selectThreat(this)">🟡 Moderate</button>
+          <button class="threat-btn" data-threat="low" onclick="selectThreat(this)">🟢 Low</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Coverage Area (hectares)</label>
+        <input type="number" class="form-input" id="fieldArea" placeholder="Estimated area" step="0.1" min="0">
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-section-title">📸 Photos</div>
+    <div class="form-card">
+      <div class="photo-area" id="photoArea">
+        <label class="photo-add">
+          <span class="plus-icon">+</span><span>Add Photo</span>
+          <input type="file" accept="image/*" capture="environment" hidden onchange="handlePhotos(this)" multiple>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-section-title">📝 Notes</div>
+    <div class="form-card">
+      <div class="form-group">
+        <label class="form-label">Observer Name</label>
+        <input type="text" class="form-input" id="fieldObserver" placeholder="Your name">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Field Notes</label>
+        <textarea class="form-textarea" id="fieldNotes" placeholder="Additional observations, habitat conditions, surrounding vegetation..."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <button class="submit-btn" id="submitBtn" onclick="submitRecord()">
+    <span class="btn-content">Save to Queue</span>
+    <span class="spinner"></span>
+  </button>
+</div>
+
+<!-- ===== QUEUE PAGE ===== -->
+<div class="page" id="page-queue">
+  <div id="queueList"></div>
+  <div class="empty-state" id="queueEmpty">
+    <div class="empty-icon">📭</div>
+    <p>No records in queue.<br>Start collecting data in the field!</p>
+  </div>
+  <button class="sync-all-btn" id="syncAllBtn" onclick="syncAll()" style="display:none;">⬆️ Sync All to GitHub</button>
+</div>
+
+<!-- ===== SETTINGS PAGE ===== -->
+<div class="page" id="page-settings">
+  <div class="form-section">
+    <div class="form-section-title">GitHub Sync Configuration</div>
+    <div class="settings-item">
+      <label>Repository Owner</label>
+      <div class="hint">GitHub username or organization</div>
+      <input type="text" class="form-input" id="settingsOwner" placeholder="e.g. welinrj">
+    </div>
+    <div class="settings-item">
+      <label>Data Repository</label>
+      <div class="hint">Repo where field data will be stored</div>
+      <input type="text" class="form-input" id="settingsRepo" placeholder="e.g. merremia-field-data">
+    </div>
+    <div class="settings-item">
+      <label>GitHub Token</label>
+      <div class="hint">Personal access token with repo write access. Stored locally only — never sent to any server except GitHub.</div>
+      <input type="password" class="form-input" id="settingsToken" placeholder="ghp_xxxxxxxxxxxx">
+    </div>
+    <div class="settings-item">
+      <label>Default Observer</label>
+      <div class="hint">Pre-fill the observer name field</div>
+      <input type="text" class="form-input" id="settingsObserver" placeholder="Your name">
+    </div>
+    <div class="settings-item">
+      <div class="toggle-row">
+        <span class="toggle-label">Auto-sync when online</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="settingsAutoSync" checked>
+          <div class="toggle-track"></div>
+          <div class="toggle-knob"></div>
+        </label>
+      </div>
+    </div>
+    <button class="sync-all-btn" onclick="saveSettings()">💾 Save Settings</button>
+    <button class="clear-btn" onclick="clearAllData()">🗑️ Clear All Local Data</button>
+  </div>
+
+  <div class="form-section" style="margin-top: 24px;">
+    <div class="form-section-title">About</div>
+    <div class="form-card" style="font-size: 13px; color: var(--gray-500); line-height: 1.6;">
+      <strong>Merremia Field Collector v1.0</strong><br>
+      Offline-first PWA for invasive vine monitoring across Vanuatu. 
+      Data syncs to GitHub as JSON when connectivity is available. 
+      Install this app on your phone's home screen for the best experience.<br><br>
+      Built for the Merremia Vanuatu ecological monitoring project.
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+<!-- SUCCESS -->
+<div class="success-overlay" id="successOverlay">
+  <div class="success-check">✓</div>
+  <div class="success-text">Record Saved!</div>
+</div>
+<!-- UPDATE BANNER -->
+<div class="update-banner" id="updateBanner" onclick="applyUpdate()">
+  🔄 New version available — tap to update
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+let currentGPS = { lat: null, lng: null, accuracy: null };
+let selectedSpecies = [];
+let selectedThreat = null;
+let photos = [];
+let gpsWatchId = null;
+let deferredInstallPrompt = null;
+let swRegistration = null;
+let isSyncing = false;
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  loadSettings();
+  initGPS();
+  updateQueueDisplay();
+  updateOnlineStatus();
+  updateTime();
+  setInterval(updateTime, 30000);
+  registerServiceWorker();
+
+  window.addEventListener('online', () => {
+    updateOnlineStatus();
+    autoSyncIfEnabled();
+  });
+  window.addEventListener('offline', updateOnlineStatus);
+
+  // Nav tabs
+  document.querySelectorAll('.nav-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(`page-${tab.dataset.tab}`).classList.add('active');
+    });
+  });
+
+  // PWA install prompt
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    document.getElementById('installBadge').style.display = 'inline-flex';
+  });
+});
+
+// ══════════════════════════════════════════
+// SERVICE WORKER
+// ══════════════════════════════════════════
+async function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) {
+    console.warn('[App] Service workers not supported');
+    return;
+  }
+
+  // Ensure we're on a secure context (HTTPS or localhost)
+  if (!window.isSecureContext) {
+    console.warn('[App] Service workers require HTTPS. Skipping registration.');
+    return;
+  }
+
+  try {
+    // Determine the correct SW path based on current page location
+    // This handles GitHub Pages subpaths like /merremia-field-collector/
+    const basePath = new URL('./', window.location.href).pathname;
+    const swURL = `${basePath}sw.js`;
+
+    console.log('[App] Registering SW at:', swURL, 'with scope:', basePath);
+
+    swRegistration = await navigator.serviceWorker.register(swURL, {
+      scope: basePath
+    });
+    console.log('[App] Service worker registered successfully');
+
+    // Listen for updates
+    swRegistration.addEventListener('updatefound', () => {
+      const newWorker = swRegistration.installing;
+      if (!newWorker) return;
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          document.getElementById('updateBanner').classList.add('show');
+        }
+      });
+    });
+
+    // Listen for sync messages from SW
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (event.data?.type === 'SYNC_REQUESTED') {
+        autoSyncIfEnabled();
+      }
+    });
+
+    // Register background sync if supported
+    if (swRegistration.active && 'sync' in swRegistration) {
+      try {
+        await swRegistration.sync.register('sync-records');
+      } catch (syncErr) {
+        console.warn('[App] Background sync registration failed (non-critical):', syncErr);
+      }
+    }
+  } catch (err) {
+    // Don't let SW failure break the app — it still works without it
+    console.warn('[App] SW registration failed (app still works offline via localStorage):', err.message);
+  }
+}
+
+function applyUpdate() {
+  if (swRegistration?.waiting) {
+    swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
+  }
+  window.location.reload();
+}
+
+async function installApp() {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  const { outcome } = await deferredInstallPrompt.userChoice;
+  if (outcome === 'accepted') {
+    document.getElementById('installBadge').style.display = 'none';
+    showToast('✅ App installed!');
+  }
+  deferredInstallPrompt = null;
+}
+
+// ══════════════════════════════════════════
+// ONLINE STATUS
+// ══════════════════════════════════════════
+function updateOnlineStatus() {
+  const dot = document.getElementById('statusDot');
+  const text = document.getElementById('statusText');
+  if (navigator.onLine) {
+    dot.className = 'status-dot';
+    text.textContent = 'Online';
+  } else {
+    dot.className = 'status-dot offline';
+    text.textContent = 'Offline — data saved locally';
+  }
+}
+
+function updateTime() {
+  document.getElementById('statusTime').textContent =
+    new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+// ══════════════════════════════════════════
+// GPS
+// ══════════════════════════════════════════
+function initGPS() {
+  if (!navigator.geolocation) { setGPSError('GPS not available'); return; }
+  requestGPS();
+}
+
+function requestGPS() {
+  const card = document.getElementById('gpsCard');
+  card.className = 'gps-card searching';
+  document.getElementById('gpsCoords').textContent = 'Acquiring GPS...';
+  document.getElementById('gpsAccuracy').textContent = 'Searching for satellites';
+
+  if (gpsWatchId) navigator.geolocation.clearWatch(gpsWatchId);
+
+  gpsWatchId = navigator.geolocation.watchPosition(
+    (pos) => {
+      currentGPS = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy };
+      card.className = 'gps-card';
+      document.getElementById('gpsCoords').textContent =
+        `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;
+      document.getElementById('gpsAccuracy').textContent =
+        `Accuracy: ±${Math.round(pos.coords.accuracy)}m`;
+    },
+    (err) => setGPSError(err.message || 'Location unavailable'),
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
+  );
+}
+
+function setGPSError(msg) {
+  document.getElementById('gpsCard').className = 'gps-card error';
+  document.getElementById('gpsCoords').textContent = 'GPS unavailable';
+  document.getElementById('gpsAccuracy').textContent = msg;
+}
+
+function refreshGPS() { requestGPS(); }
+
+// ══════════════════════════════════════════
+// FORM INTERACTIONS
+// ══════════════════════════════════════════
+function toggleSpecies(el) {
+  el.classList.toggle('selected');
+  const sp = el.dataset.species;
+  if (selectedSpecies.includes(sp)) selectedSpecies = selectedSpecies.filter(s => s !== sp);
+  else selectedSpecies.push(sp);
+}
+
+function selectThreat(el) {
+  document.querySelectorAll('.threat-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedThreat = el.dataset.threat;
+}
+
+// ══════════════════════════════════════════
+// PHOTOS
+// ══════════════════════════════════════════
+function handlePhotos(input) {
+  Array.from(input.files).forEach(file => {
+    if (photos.length >= 5) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const max = 1024;
+        let w = img.width, h = img.height;
+        if (w > max || h > max) {
+          if (w > h) { h = (h / w) * max; w = max; }
+          else { w = (w / h) * max; h = max; }
+        }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        photos.push(canvas.toDataURL('image/jpeg', 0.7));
+        renderPhotos();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value = '';
+}
+
+function renderPhotos() {
+  const area = document.getElementById('photoArea');
+  area.innerHTML = '';
+  photos.forEach((src, i) => {
+    const thumb = document.createElement('div');
+    thumb.className = 'photo-thumb';
+    thumb.innerHTML = `<img src="${src}" alt="Photo ${i+1}"><button class="photo-remove" onclick="removePhoto(${i})">×</button>`;
+    area.appendChild(thumb);
+  });
+  if (photos.length < 5) {
+    const add = document.createElement('label');
+    add.className = 'photo-add';
+    add.innerHTML = `<span class="plus-icon">+</span><span>Add Photo</span><input type="file" accept="image/*" capture="environment" hidden onchange="handlePhotos(this)" multiple>`;
+    area.appendChild(add);
+  }
+}
+
+function removePhoto(i) { photos.splice(i, 1); renderPhotos(); }
+
+// ══════════════════════════════════════════
+// SUBMIT
+// ══════════════════════════════════════════
+function submitRecord() {
+  if (selectedSpecies.length === 0) { showToast('⚠️ Select at least one species'); return; }
+  if (!selectedThreat) { showToast('⚠️ Select a threat level'); return; }
+
+  const record = {
+    id: 'rec_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 6),
+    timestamp: new Date().toISOString(),
+    gps: { ...currentGPS },
+    island: document.getElementById('fieldIsland').value,
+    siteName: document.getElementById('fieldSiteName').value,
+    species: [...selectedSpecies],
+    count: parseInt(document.getElementById('fieldCount').value) || null,
+    threatLevel: selectedThreat,
+    coverageArea: parseFloat(document.getElementById('fieldArea').value) || null,
+    photos: [...photos],
+    observer: document.getElementById('fieldObserver').value || getSettings().observer || '',
+    notes: document.getElementById('fieldNotes').value,
+    synced: false
+  };
+
+  saveRecord(record);
+
+  const overlay = document.getElementById('successOverlay');
+  overlay.classList.add('show');
+  setTimeout(() => overlay.classList.remove('show'), 1200);
+
+  resetForm();
+  updateQueueDisplay();
+  autoSyncIfEnabled();
+}
+
+function resetForm() {
+  selectedSpecies = []; selectedThreat = null; photos = [];
+  document.querySelectorAll('.species-chip').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('.threat-btn').forEach(b => b.classList.remove('selected'));
+  ['fieldSiteName', 'fieldCount', 'fieldArea', 'fieldNotes'].forEach(id => document.getElementById(id).value = '');
+  renderPhotos();
+}
+
+// ══════════════════════════════════════════
+// LOCAL STORAGE
+// ══════════════════════════════════════════
+function getRecords() {
+  try { return JSON.parse(localStorage.getItem('merremia_records') || '[]'); }
+  catch { return []; }
+}
+
+function saveRecord(record) {
+  const records = getRecords();
+  records.unshift(record);
+  localStorage.setItem('merremia_records', JSON.stringify(records));
+}
+
+function deleteRecord(id) {
+  if (!confirm('Delete this record?')) return;
+  const records = getRecords().filter(r => r.id !== id);
+  localStorage.setItem('merremia_records', JSON.stringify(records));
+  updateQueueDisplay();
+}
+
+function updateRecordStatus(id, synced) {
+  const records = getRecords();
+  const rec = records.find(r => r.id === id);
+  if (rec) rec.synced = synced;
+  localStorage.setItem('merremia_records', JSON.stringify(records));
+}
+
+// ══════════════════════════════════════════
+// QUEUE DISPLAY
+// ══════════════════════════════════════════
+function updateQueueDisplay() {
+  const records = getRecords();
+  const pending = records.filter(r => !r.synced);
+
+  document.getElementById('queueCount').textContent = pending.length;
+
+  // Tab badge
+  const badge = document.getElementById('queueTabBadge');
+  if (pending.length > 0) {
+    badge.style.display = 'flex';
+    badge.textContent = pending.length;
+  } else {
+    badge.style.display = 'none';
+  }
+
+  const list = document.getElementById('queueList');
+  const empty = document.getElementById('queueEmpty');
+  const syncBtn = document.getElementById('syncAllBtn');
+
+  if (records.length === 0) {
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    syncBtn.style.display = 'none';
+    return;
+  }
+
+  empty.style.display = 'none';
+  syncBtn.style.display = pending.length > 0 ? 'block' : 'none';
+
+  list.innerHTML = records.map(r => `
+    <div class="queue-item">
+      <div class="queue-item-icon ${r.synced ? 'synced' : 'pending'}">${r.synced ? '✅' : '⏳'}</div>
+      <div class="queue-item-info">
+        <div class="queue-item-species">${r.species.join(', ')}</div>
+        <div class="queue-item-meta">
+          ${r.island || 'Unknown'} · ${r.siteName || '—'}
+          · ${new Date(r.timestamp).toLocaleDateString()}
+          ${r.photos.length > 0 ? ` · 📷${r.photos.length}` : ''}
+        </div>
+      </div>
+      <span class="queue-item-status ${r.synced ? 'synced' : 'pending'}">${r.synced ? 'Synced' : 'Pending'}</span>
+      <div class="queue-item-actions">
+        <button class="queue-item-delete" onclick="deleteRecord('${r.id}')" title="Delete">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════════
+// GITHUB SYNC
+// ══════════════════════════════════════════
+async function autoSyncIfEnabled() {
+  const settings = getSettings();
+  if (!settings.autoSync) return;
+  if (!navigator.onLine) return;
+  if (!settings.owner || !settings.repo || !settings.token) return;
+
+  const pending = getRecords().filter(r => !r.synced);
+  if (pending.length === 0) return;
+
+  await syncAll();
+}
+
+async function syncAll() {
+  if (isSyncing) return;
+
+  const settings = getSettings();
+  if (!settings.owner || !settings.repo || !settings.token) {
+    showToast('⚠️ Configure GitHub in Settings first');
+    document.querySelector('[data-tab="settings"]').click();
+    return;
+  }
+
+  if (!navigator.onLine) {
+    showToast('📡 No internet — will sync when online');
+    // Register background sync
+    if (swRegistration && 'sync' in swRegistration) {
+      await swRegistration.sync.register('sync-records');
+    }
+    return;
+  }
+
+  const records = getRecords().filter(r => !r.synced);
+  if (records.length === 0) { showToast('✅ All records synced'); return; }
+
+  isSyncing = true;
+  const dot = document.getElementById('statusDot');
+  const text = document.getElementById('statusText');
+  dot.className = 'status-dot syncing';
+  text.textContent = `Syncing 0/${records.length}...`;
+
+  const syncBtn = document.getElementById('syncAllBtn');
+  if (syncBtn) { syncBtn.disabled = true; syncBtn.textContent = '⏳ Syncing...'; }
+
+  let synced = 0;
+
+  for (const record of records) {
+    try {
+      text.textContent = `Syncing ${synced + 1}/${records.length}...`;
+
+      const dataRecord = { ...record };
+      const photoRefs = [];
+
+      // Upload photos
+      for (let i = 0; i < record.photos.length; i++) {
+        const photoPath = `photos/${record.id}_${i}.jpg`;
+        const photoBase64 = record.photos[i].split(',')[1];
+        await githubPut(settings, photoPath, photoBase64,
+          `📷 Photo ${i+1} for ${record.id}`);
+        photoRefs.push(photoPath);
+      }
+      dataRecord.photos = photoRefs;
+
+      // Upload record
+      const content = btoa(unescape(encodeURIComponent(JSON.stringify(dataRecord, null, 2))));
+      await githubPut(settings, `records/${record.id}.json`, content,
+        `📋 ${record.species.join(', ')} @ ${record.island || 'unknown'}`);
+
+      updateRecordStatus(record.id, true);
+      synced++;
+    } catch (err) {
+      console.error(`Sync failed for ${record.id}:`, err);
+      showToast(`❌ Failed: ${err.message}`);
+      break;
+    }
+  }
+
+  // Update master data file
+  if (synced > 0) {
+    try {
+      await updateMasterData(settings);
+    } catch (err) {
+      console.error('Master data update failed:', err);
+    }
+  }
+
+  isSyncing = false;
+  updateOnlineStatus();
+  updateQueueDisplay();
+
+  if (syncBtn) { syncBtn.disabled = false; syncBtn.textContent = '⬆️ Sync All to GitHub'; }
+
+  if (synced > 0) showToast(`✅ Synced ${synced} record${synced > 1 ? 's' : ''}`);
+}
+
+async function githubPut(settings, path, content, message) {
+  const url = `https://api.github.com/repos/${settings.owner}/${settings.repo}/contents/${path}`;
+  let sha;
+
+  try {
+    const existing = await fetch(url, {
+      headers: { 'Authorization': `Bearer ${settings.token}`, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if (existing.ok) sha = (await existing.json()).sha;
+  } catch {}
+
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${settings.token}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/vnd.github.v3+json'
+    },
+    body: JSON.stringify({ message, content, ...(sha && { sha }) })
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+async function updateMasterData(settings) {
+  // Build master dataset from all synced records (without photo base64)
+  const allRecords = getRecords().filter(r => r.synced).map(r => ({
+    id: r.id,
+    timestamp: r.timestamp,
+    gps: r.gps,
+    island: r.island,
+    siteName: r.siteName,
+    species: r.species,
+    count: r.count,
+    threatLevel: r.threatLevel,
+    coverageArea: r.coverageArea,
+    observer: r.observer,
+    notes: r.notes,
+    photoCount: (r.photos || []).length
+  }));
+
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(allRecords, null, 2))));
+  await githubPut(settings, 'data/all-records.json', content,
+    `📊 Master data updated (${allRecords.length} records)`);
+
+  // Also create a CSV version for easy import
+  const csvHeader = 'id,timestamp,latitude,longitude,accuracy,island,siteName,species,count,threatLevel,coverageArea,observer,notes,photoCount';
+  const csvRows = allRecords.map(r =>
+    [r.id, r.timestamp, r.gps?.lat, r.gps?.lng, r.gps?.accuracy,
+     `"${r.island || ''}"`, `"${r.siteName || ''}"`,
+     `"${r.species.join('; ')}"`, r.count || '',
+     r.threatLevel, r.coverageArea || '',
+     `"${r.observer || ''}"`, `"${(r.notes || '').replace(/"/g, '""')}"`,
+     r.photoCount
+    ].join(',')
+  );
+  const csvContent = btoa(unescape(encodeURIComponent(csvHeader + '\n' + csvRows.join('\n'))));
+  await githubPut(settings, 'data/all-records.csv', csvContent,
+    `📊 CSV export (${allRecords.length} records)`);
+}
+
+// ══════════════════════════════════════════
+// SETTINGS
+// ══════════════════════════════════════════
+function getSettings() {
+  try { return JSON.parse(localStorage.getItem('merremia_settings') || '{}'); }
+  catch { return {}; }
+}
+
+function saveSettings() {
+  const settings = {
+    owner: document.getElementById('settingsOwner').value.trim(),
+    repo: document.getElementById('settingsRepo').value.trim(),
+    token: document.getElementById('settingsToken').value.trim(),
+    observer: document.getElementById('settingsObserver').value.trim(),
+    autoSync: document.getElementById('settingsAutoSync').checked
+  };
+  localStorage.setItem('merremia_settings', JSON.stringify(settings));
+  if (settings.observer) document.getElementById('fieldObserver').value = settings.observer;
+  showToast('✅ Settings saved');
+}
+
+function loadSettings() {
+  const s = getSettings();
+  if (s.owner) document.getElementById('settingsOwner').value = s.owner;
+  if (s.repo) document.getElementById('settingsRepo').value = s.repo;
+  if (s.token) document.getElementById('settingsToken').value = s.token;
+  if (s.observer) {
+    document.getElementById('settingsObserver').value = s.observer;
+    document.getElementById('fieldObserver').value = s.observer;
+  }
+  if (s.autoSync !== undefined) document.getElementById('settingsAutoSync').checked = s.autoSync;
+}
+
+function clearAllData() {
+  if (!confirm('Delete ALL local records and settings? This cannot be undone.')) return;
+  localStorage.removeItem('merremia_records');
+  localStorage.removeItem('merremia_settings');
+  updateQueueDisplay();
+  loadSettings();
+  showToast('🗑️ All data cleared');
+}
+
+// ══════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
