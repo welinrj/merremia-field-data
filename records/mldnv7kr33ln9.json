@@ -1,0 +1,16 @@
+{
+  "id": "mldnv7kr33ln9",
+  "timestamp": "2026-02-08T11:29:46.779Z",
+  "latitude": -17.717276271908762,
+  "longitude": 168.32278992080415,
+  "accuracy": 9,
+  "island": "Erromango",
+  "siteName": "avanbatai",
+  "species": "M. tuberosa",
+  "count": 1,
+  "threatLevel": "Low",
+  "coverageArea": 0,
+  "observer": "Test",
+  "notes": "",
+  "synced": false
+}
