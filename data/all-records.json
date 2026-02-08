@@ -78,5 +78,21 @@
     "observer": "test from iphone",
     "notes": "",
     "synced": true
+  },
+  {
+    "id": "mleb59s0zwfhg",
+    "timestamp": "2026-02-08T22:21:27.360Z",
+    "latitude": -17.749789876586284,
+    "longitude": 168.31464881350422,
+    "accuracy": 14,
+    "island": "Epi",
+    "siteName": "Mele 2",
+    "species": "M. peltata",
+    "count": 1,
+    "threatLevel": "Low",
+    "coverageArea": 0,
+    "observer": "Micky",
+    "notes": "",
+    "synced": true
   }
 ]
