@@ -62,21 +62,5 @@
     "observer": "Micky",
     "notes": "",
     "synced": true
-  },
-  {
-    "id": "mldpddxhfomqq",
-    "timestamp": "2026-02-08T12:11:54.437Z",
-    "latitude": -17.717276461713762,
-    "longitude": 168.3227899700656,
-    "accuracy": 6,
-    "island": "Tanna",
-    "siteName": "lenakel",
-    "species": "M. dissecta",
-    "count": 1,
-    "threatLevel": "High",
-    "coverageArea": 0,
-    "observer": "Test",
-    "notes": "",
-    "synced": true
   }
 ]
