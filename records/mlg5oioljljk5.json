@@ -1,0 +1,21 @@
+{
+  "id": "mlg5oioljljk5",
+  "timestamp": "2026-02-10T05:24:00.022Z",
+  "category": "degraded",
+  "latitude": -17.749747983304303,
+  "longitude": 168.31463815853118,
+  "accuracy": 5,
+  "island": "Efate",
+  "siteName": "Office",
+  "observer": "Micky",
+  "notes": "",
+  "synced": false,
+  "degradationType": "Pollution",
+  "severity": "Mild",
+  "estimatedArea": 0,
+  "landUseType": "Other",
+  "vegetationCover": null,
+  "erosionEvidence": "No",
+  "cause": "",
+  "waterNearby": "Yes"
+}
