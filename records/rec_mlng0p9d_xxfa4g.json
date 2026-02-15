@@ -1,0 +1,21 @@
+{
+  "id": "rec_mlng0p9d_xxfa4g",
+  "timestamp": "2026-02-15T07:47:47.809Z",
+  "gps": {
+    "lat": -17.71730067771257,
+    "lng": 168.32273218340507,
+    "accuracy": 17.800398358062868
+  },
+  "island": "Efate",
+  "siteName": "",
+  "species": [
+    "M. peltata"
+  ],
+  "count": null,
+  "threatLevel": "low",
+  "coverageArea": null,
+  "photos": [],
+  "observer": "Tito",
+  "notes": "",
+  "synced": false
+}
